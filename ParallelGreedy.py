@@ -84,7 +84,7 @@ def parallelGreedy(mat, inverse, L_r, L_c, Ls_r, Ls_c, row_op, col_op, p_value, 
             elif best_row_cst > best_col_cst:
                 minm_cost = best_col_cst
             else:
-                minm_cost = best_col_cst
+                minm_cost = best_col_cst if len(select_list) > 0 else minm_cost
 
         print("The current select_list and minm cost: ", select_list, minm_cost)
          
