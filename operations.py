@@ -64,7 +64,7 @@ def L_collection(L, visited, SIZE):
                 continue
             L.append((i, j))
     return L
-def can_depth_one(mat):
+def can_close_permutation(mat):
     for i in range(mat.shape[0]):
         if np.count_nonzero(mat[i]) > 2:
             return False
@@ -72,7 +72,7 @@ def can_depth_one(mat):
     if np.any(column_counts > 2):
         return False
     return True
-def available_operator_execution(select_list, layer_r, layer_c, layers_r, layers_c, mat, inverse, row_op, col_op, row_visited, col_visited, depth, SIZE, one):
+def available_operator_execution(select_list, layer_r, layer_c, layers_r, layers_c, mat, inverse, row_op, col_op, row_visited, col_visited, depth, SIZE, close_permu):
     if len(select_list) == 0: #every time check the select list is empty
         if len(layer_r) > 0:
             layers_r.append(layer_r)
@@ -82,8 +82,8 @@ def available_operator_execution(select_list, layer_r, layer_c, layers_r, layers
             layers_c.append(layer_c)
             layer_c = []
             col_visited = [0]*SIZE
-        if can_depth_one(mat):
-            one = True
+        if can_close_permutation(mat):
+            close_permu = True
     else:
         rand = random.randint(0, len(select_list)-1)
         select_operator = select_list[rand] #for find the randomly operations on the select list
@@ -108,7 +108,7 @@ def available_operator_execution(select_list, layer_r, layer_c, layers_r, layers
             col_visited[i] = 1 #on the col visi list record the control to 1
             col_visited[j] = 1 #also record 1 for target
             print("Currently Column operations:", col_op)
-    return select_list, layer_r, layer_c, layers_r, layers_c, mat, inverse, row_op, col_op, row_visited, col_visited, depth, one
+    return select_list, layer_r, layer_c, layers_r, layers_c, mat, inverse, row_op, col_op, row_visited, col_visited, depth, close_permu
 
 def verify_layer_conflicts(layers):
     """

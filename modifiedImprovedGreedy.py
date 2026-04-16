@@ -7,7 +7,7 @@ from RowGreedy import rowGreedy
 from ColGreedy import colGreedy
 from row_or_Col_Greedy import row_or_Col
 from ParallelGreedy import parallelGreedy
-ALL_COST_MAT_NAME = {"sum": "1", "sq": "2", "cube": "3", "fourth": "4", "log": "-1"}
+ALL_COST_MAT_NAME = {"log": "-1", "sum": "1", "sq": "2", "origin": "3"}
 REVERSED = {v: k for k, v in ALL_COST_MAT_NAME.items()}
 '''
 This function will execute the four kind of greedy algorithm depends on type parameter
@@ -19,26 +19,27 @@ This function will execute the four kind of greedy algorithm depends on type par
 def modifiedImprovedGreedy(mat, matName, greedy, p_value, occur):
     # Define variables
     SIZE = len(mat); depth = 0
-    minm = sys.float_info.max; minm_size = sys.float_info.max; minm_cost = sys.float_info.max
+    minm = sys.float_info.max; minm_size = sys.float_info.max
     origin = copy.deepcopy(mat); inverse = operations.inv(mat)
     #Layer_r and Layer_c
     L_r = []; L_c = []
     #Layers_r and Layers_c
     Ls_r = []; Ls_c = []
     row_op = []; col_op = []
-    flag = False
+    over_depth = False
+    fileName = matName.upper()
 
     match greedy:
         case "Row":
-            L_r, L_c, Ls_r, Ls_c, mat, row_op, col_op, depth, flag = rowGreedy(mat, inverse, L_r, L_c, Ls_r, Ls_c,  row_op, col_op, p_value, flag, depth)
+            L_r, L_c, Ls_r, Ls_c, mat, row_op, col_op, depth, over_depth = rowGreedy(mat, inverse, fileName, L_r, L_c, Ls_r, Ls_c,  row_op, col_op, p_value, over_depth, depth)
         case "Col":
-            L_r, L_c, Ls_r, Ls_c, mat, row_op, col_op, depth, flag = colGreedy(mat, inverse, L_r, L_c, Ls_r, Ls_c,  row_op, col_op, p_value, flag, depth)
+            L_r, L_c, Ls_r, Ls_c, mat, row_op, col_op, depth, over_depth = colGreedy(mat, inverse, fileName, L_r, L_c, Ls_r, Ls_c,  row_op, col_op, p_value, over_depth, depth)
         case "Row_or_Col":
-            L_r, L_c, Ls_r, Ls_c, mat, row_op, col_op, depth, flag = row_or_Col(mat, inverse, L_r, L_c, Ls_r, Ls_c,  row_op, col_op, p_value, flag, depth)
+            L_r, L_c, Ls_r, Ls_c, mat, row_op, col_op, depth, over_depth = row_or_Col(mat, inverse, fileName, L_r, L_c, Ls_r, Ls_c,  row_op, col_op, p_value, over_depth, depth)
         case "Parallel":
-            L_r, L_c, Ls_r, Ls_c, mat, row_op, col_op, depth, flag = parallelGreedy(mat, inverse, L_r, L_c, Ls_r, Ls_c,  row_op, col_op, p_value, flag, depth)
+            L_r, L_c, Ls_r, Ls_c, mat, row_op, col_op, depth, over_depth = parallelGreedy(mat, inverse, fileName, L_r, L_c, Ls_r, Ls_c,  row_op, col_op, p_value, over_depth, depth)
 
-    if flag:
+    if over_depth:
         return
 
     #check the last iteration
@@ -102,7 +103,7 @@ def modifiedImprovedGreedy(mat, matName, greedy, p_value, occur):
     #Verify the Layers is work
     correct = operations.Verify(origin, layers, seq, mat)
     if correct:
-        with open(f"{greedy}_{matName}-{SIZE}-block_{REVERSED[p_value]}_Layer_Results", "a") as f:
+        with open(f"{greedy}_{fileName}-{SIZE}-block_{REVERSED[p_value]}_Layer_Results", "a") as f:
             for l in layers:
                 for lay in l:
                     f.write("(%d %d %d)|" % (lay[0], lay[1], lay[2]))
@@ -111,11 +112,11 @@ def modifiedImprovedGreedy(mat, matName, greedy, p_value, occur):
         f.close()
         
         #store the operations from sequence
-        with open(f"{greedy}_{matName}-{SIZE}-block_{REVERSED[p_value]}_Sequence_Results", "a") as f:
+        with open(f"{greedy}_{fileName}-{SIZE}-block_{REVERSED[p_value]}_Sequence_Results", "a") as f:
             for i in seq:
                 f.write("%d, %d, %d\n" % (i[0], i[1], i[2]))
             f.write("CNOT: %d\n" % (len(seq)))
         f.close()
 
     print(f"{SIZE}-block size that depth is: ", minm, " and size is: ", size_minm)
-    print(f"The select cost function is {REVERSED[p_value]} and used in {matName} matrix")
+    print(f"The select cost function is {REVERSED[p_value]} and used in {fileName} matrix")

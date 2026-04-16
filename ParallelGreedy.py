@@ -1,18 +1,22 @@
 import operations
-from cost_function import cost_mat
+from cost_function import functionCost
 import sys
 import selector
 import configparser
 import numpy as np
+from pathlib import Path
 
-def parallelGreedy(mat, inverse, L_r, L_c, Ls_r, Ls_c, row_op, col_op, p_value, flag, depth):
+def parallelGreedy(mat, inverse, fileName, L_r, L_c, Ls_r, Ls_c, row_op, col_op, p_value, over_depth, depth):
     SIZE = len(mat)
     minm_cost = sys.float_info.max; best_row_cst = sys.float_info.max; best_col_cst = sys.float_info.max
+    LIMIT = sys.float_info.max
     select_list = []
     row_visi = [0]*SIZE; col_visi = [0]*SIZE
-    config = configparser.ConfigParser(); config.optionxform = str; config.read('ParallelConfig.ini')
-    LIMIT = int(config.get('DEPTH', 'parallelLimit'))
-    one = False
+    config = configparser.ConfigParser(); config.optionxform = str; 
+    if "RAND" not in fileName:
+        config.read(Path("Config")/f'ParallelConfig_{fileName}.ini')
+        LIMIT = int(config.get('DEPTH', 'parallelLimit'))
+    close_permu = False
 
     stuck_counter = 0; max_stuck_iterations = 3
 
@@ -28,22 +32,20 @@ def parallelGreedy(mat, inverse, L_r, L_c, Ls_r, Ls_c, row_op, col_op, p_value, 
         select_list = []
         L_row_cst = []; L_col_cst = []
         B_row = []; B_col = []
+
+        if close_permu:
+            p_value = "-1"
         
-        if p_value != "1":
-            H_r = cost_mat(mat, p_value) + cost_mat(np.transpose(inverse), p_value)
-            H_c = cost_mat(np.transpose(mat), p_value) + cost_mat(inverse, p_value)
-            minm_cost = max(H_r, H_c)
-        else:
-            minm_cost = cost_mat(mat, p_value) + cost_mat(np.transpose(inverse), p_value)
+        minm_cost = functionCost(mat, inverse, p_value)
 
         print("Current cost:", minm_cost)
 
-        if not one:
+        if not close_permu:
             L_row = operations.L_collection(L_row, row_visi, SIZE)
-            B_row, best_row_cst, minm_cost = selector.modified_available_row_operator_selection(L_row, L_row_cst, mat, inverse, p_value, minm_cost, best_row_cst, B_row)
+            B_row, best_row_cst = selector.B_row_sel(L_row, L_row_cst, mat, inverse, p_value, minm_cost, best_row_cst, B_row)
 
         L_col = operations.L_collection(L_col, col_visi, SIZE)
-        B_col, best_col_cst, minm_cost = selector.modified_available_col_operator_selection(L_col, L_col_cst, mat, inverse, p_value, minm_cost, best_col_cst, B_col)
+        B_col, best_col_cst = selector.B_col_sel(L_col, L_col_cst, mat, inverse, p_value, minm_cost, best_col_cst, B_col)
 
         print("The B_row and best_row_cst:", B_row, best_row_cst)
         print("The B_col and best_col_cst:", B_col, best_col_cst)
@@ -54,18 +56,18 @@ def parallelGreedy(mat, inverse, L_r, L_c, Ls_r, Ls_c, row_op, col_op, p_value, 
 
         if is_stuck:
             stuck_counter += 1
-            print(f"WARNING: Local minima detected! Stuck counter: {stuck_counter}/{max_stuck_iterations}")
+            print(f"WARNING: Local minimum detected! Stuck counter: {stuck_counter}/{max_stuck_iterations}")
         else:
             stuck_counter = 0
 
         if stuck_counter >= max_stuck_iterations or (is_stuck and sum(row_visi) == 0 and sum(col_visi) == 0):
-            print("=== ESCAPING LOCAL MINIMA ===")
+            print("=== ESCAPING LOCAL MINIMUM ===")
 
             escapeCandidates = []
 
-            escapeCandidates = selector.avoid_localMinima_available_row_operator_selection(L_row, mat, inverse, p_value, escapeCandidates)
+            escapeCandidates = selector.rand_row_sel(L_row, mat, inverse, p_value, escapeCandidates)
 
-            escapeCandidates = selector.avoid_localMinima_available_col_operator_selection(L_col, mat, inverse, p_value, escapeCandidates)
+            escapeCandidates = selector.rand_col_sel(L_col, mat, inverse, p_value, escapeCandidates)
 
             if len(escapeCandidates) > 0:
                 escapeCandidates.sort(key=lambda x: x[0])
@@ -86,13 +88,13 @@ def parallelGreedy(mat, inverse, L_r, L_c, Ls_r, Ls_c, row_op, col_op, p_value, 
             else:
                 minm_cost = best_col_cst if len(select_list) > 0 else minm_cost
 
-        print("The current select_list and minm cost: ", select_list, minm_cost)
+        print("The current select_list and minimum cost: ", select_list, minm_cost)
          
-        select_list, L_r, L_c, Ls_r, Ls_c, mat, inverse, row_op, col_op, row_visi, col_visi, depth, one = operations.available_operator_execution(select_list, L_r, L_c, Ls_r, Ls_c, mat, inverse, row_op, col_op, row_visi, col_visi, depth, SIZE, one)
+        select_list, L_r, L_c, Ls_r, Ls_c, mat, inverse, row_op, col_op, row_visi, col_visi, depth, close_permu = operations.available_operator_execution(select_list, L_r, L_c, Ls_r, Ls_c, mat, inverse, row_op, col_op, row_visi, col_visi, depth, SIZE, close_permu)
 
         if depth > LIMIT:
             print(f"Depth {depth} over minimum limit {LIMIT}, so break this iteration")
-            flag = True
-            return L_r, L_c, Ls_r, Ls_c, mat, row_op, col_op, depth, flag
+            over_depth = True
+            return L_r, L_c, Ls_r, Ls_c, mat, row_op, col_op, depth, over_depth
 
-    return L_r, L_c, Ls_r, Ls_c, mat, row_op, col_op, depth, flag
+    return L_r, L_c, Ls_r, Ls_c, mat, row_op, col_op, depth, over_depth

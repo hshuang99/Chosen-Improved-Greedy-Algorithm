@@ -1,18 +1,22 @@
 import operations
+import sys
 import selector
 import configparser
-import sys
-from cost_function import cost_mat
+from cost_function import functionCost
 import numpy as np
+from pathlib import Path
 
-def colGreedy(mat, inverse, L_r, L_c, Ls_r, Ls_c, row_op, col_op, p_value, flag, depth):
+def colGreedy(mat, inverse, fileName, L_r, L_c, Ls_r, Ls_c, row_op, col_op, p_value, over_depth, depth):
     SIZE = len(mat)
     minm_cost = sys.float_info.max
-    config = configparser.ConfigParser(); config.optionxform = str; config.read('ColConfig.ini')
-    LIMIT = int(config.get('DEPTH', 'colLimit'))
-    one = False
-    row_visi = [0]*SIZE; col_visi = [0]*SIZE
+    LIMIT = sys.float_info.max
     select_list = []
+    row_visi = [0]*SIZE; col_visi = [0]*SIZE
+    close_permu = False
+    config = configparser.ConfigParser(); config.optionxform = str;
+    if "RAND" not in fileName:
+        config.read(Path("Config")/f'ColConfig_{fileName}.ini')
+        LIMIT = int(config.get('DEPTH', 'colLimit'))
 
     while not operations.is_permutation_matrix(mat):
         print("\n=== Starting new iteration ===")
@@ -23,29 +27,24 @@ def colGreedy(mat, inverse, L_r, L_c, Ls_r, Ls_c, row_op, col_op, p_value, flag,
         L_row = []; L_col = []
         L_row_cst = []; L_col_cst = []
 
-        if p_value != "1":
-            H_r = cost_mat(mat, p_value) + cost_mat(np.transpose(inverse), p_value)
-            H_c = cost_mat(np.transpose(mat), p_value) + cost_mat(inverse, p_value)
-            minm_cost = max(H_r, H_c)
-        else:
-            minm_cost = cost_mat(mat, p_value) + cost_mat(np.transpose(inverse), p_value)
-
-        print("Current Minm Cost:", minm_cost)
-
-        if not one:
-            L_row = operations.L_collection(L_row, row_visi, SIZE)
-            select_list, minm_cost = selector.available_row_operator_selection(L_row, L_row_cst, mat, inverse, p_value, minm_cost, select_list)
+        minm_cost = functionCost(mat, inverse, p_value)
+        print("Current Minimum Cost:", minm_cost)
 
         L_col = operations.L_collection(L_col, col_visi, SIZE)
-        select_list, minm_cost = selector.available_col_operator_selection(L_col, L_col_cst, mat, inverse, p_value, minm_cost, select_list)
+        select_list, minm_cost = selector.col_op_sel(L_col, L_col_cst, mat, inverse, p_value, minm_cost, select_list)
 
-        print("The select list and current minm cost: ", select_list, minm_cost)
+        #if the matrix is not achieve can depth close_permu property
+        if not close_permu:
+            L_row = operations.L_collection(L_row, row_visi, SIZE)
+            select_list, minm_cost = selector.row_op_sel(L_row, L_row_cst, mat, inverse, p_value, minm_cost, select_list)
 
-        select_list, L_r, L_c, Ls_r, Ls_c,  mat, inverse, row_op, col_op, row_visi, col_visi, depth, one = operations.available_operator_execution(select_list, L_r, L_c, Ls_r, Ls_c, mat, inverse, row_op, col_op, row_visi, col_visi, depth, SIZE, one)
+        print("The select list and current minimum cost: ", select_list, minm_cost)
+                    
+        select_list, L_r, L_c, Ls_r, Ls_c, mat, inverse, row_op, col_op, row_visi, col_visi, depth, close_permu = operations.available_operator_execution(select_list, L_r, L_c, Ls_r, Ls_c, mat, inverse, row_op, col_op, row_visi, col_visi, depth, SIZE, close_permu)  
 
-        if depth > LIMIT: #the depth is over latest minimum depth
+        if depth > LIMIT:
             print(f"Depth {depth} over minimum limit {LIMIT}, so break this iteration")
-            flag = True
-            return L_r, L_c, Ls_r, Ls_c, mat, row_op, col_op, depth, flag
+            over_depth = True
+            return L_r, L_c, Ls_r, Ls_c, mat, row_op, col_op, depth, over_depth
 
-    return L_r, L_c, Ls_r, Ls_c, mat, row_op, col_op, depth, flag
+    return L_r, L_c, Ls_r, Ls_c, mat, row_op, col_op, depth, over_depth

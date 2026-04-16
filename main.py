@@ -6,9 +6,8 @@ import threading
 import itertools
 
 ALL_GREEDY = ["Row", "Col", "Row_or_Col", "Parallel"]
-ALL_COST_MAT = ["1", "2", "3", "4", "-1"]
-
-ALL_COST_MAT_NAME = {"sum": "1", "sq": "2", "cube": "3", "fourth": "4", "log": "-1"}
+ALL_COST_MAT = ["-1", "1", "2", "3"]
+ALL_COST_MAT_NAME = {"log": "-1", "sum": "1", "sq": "2", "origin": "3"}
 REVERSED = {v: k for k, v in ALL_COST_MAT_NAME.items()}
 
 np.set_printoptions(threshold=sys.maxsize) #setting for print full numpy matrix

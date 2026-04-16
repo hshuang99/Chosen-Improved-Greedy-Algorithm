@@ -17,30 +17,32 @@ def cost_mat(mat, p):
             return ret
         case "2":#square: from Shi and Feng: Quantum Circuits of AES with a Low-depth Linear Layer and a New Structure
             for i in range(0, SIZE):
-                hammingWeight = 0.0
+                HammingWeight = 0.0
                 for j in range(0, SIZE): #column
                     if mat[i][j]: #non-zero entry
-                        hammingWeight +=  mat[i][j]
-                ret += hammingWeight ** 2
+                        HammingWeight +=  mat[i][j]
+            ret += HammingWeight ** 2
             return ret
-        case "3": #cube
-            for i in range(0, SIZE):
-                hammingWeight = 0.0
-                for j in range(0, SIZE): #column
-                    if mat[i][j]: #non-zero entry
-                        hammingWeight +=  mat[i][j]
-                ret += hammingWeight ** 3
+        case "3":
+            identity = np.identity(SIZE)
+            ret = float(np.sum(np.logical_xor(mat, identity).astype(int)))
             return ret
-        case "4": #fourth
-            for i in range(0, SIZE):
-                hammingWeight = 0.0
-                for j in range(0, SIZE): #column
-                    if mat[i][j]: #non-zero entry
-                        hammingWeight +=  mat[i][j]
-                ret += hammingWeight ** 4
-            return ret
-        case "5":
-            I = np.eye(SIZE)
-            P = np.random.permutation(I)
-            ret = float(np.sum(np.logical_xor(mat, P)))
-            return ret
+
+def functionCost(mat, inverse, p):
+    if p != "1" or "3":
+        H_r = cost_mat(mat, p) + cost_mat(np.transpose(inverse), p)
+        H_c = cost_mat(np.transpose(mat), p) + cost_mat(inverse, p)
+        minm_cost = max(H_r, H_c)
+    else:
+        minm_cost = cost_mat(mat, p) + cost_mat(inverse, p)
+    return minm_cost
+
+def operationCost(mat, inverse, p, op):
+    if p != "1" or "3":
+        if op == "0":
+            cost = cost_mat(mat, p) + cost_mat(np.transpose(inverse, p))
+        else:
+            cost = cost_mat(np.transpose(mat), p) + cost_mat(inverse, p)
+    else:
+        cost = cost_mat(mat, p) + cost_mat(inverse, p)
+    return cost
